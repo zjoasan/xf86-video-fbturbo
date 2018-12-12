@@ -77,6 +77,10 @@
 #include <pciaccess.h>
 #endif
 
+#if GET_ABI_MAJOR(ABI_VIDEODRV_VERSION) > 23
+#define HAVE_SHADOW_3224
+#endif
+
 static Bool debug = 0;
 
 #define TRACE_ENTER(str) \
@@ -173,6 +177,7 @@ typedef enum {
 	OPTION_USE_BS,
 	OPTION_FORCE_BS,
 	OPTION_XV_OVERLAY,
+	OPTION_DEBUG
 } FBDevOpts;
 
 static const OptionInfoRec FBDevOptions[] = {
@@ -269,6 +274,35 @@ FBDevIdentify(int flags)
 	xf86PrintChipsets(FBDEV_NAME, "driver for framebuffer", FBDevChipsets);
 }
 
+static Bool
+fbdevSwitchMode(ScrnInfoPtr pScrn, DisplayModePtr mode)
+{
+    return fbdevHWSwitchMode(pScrn, mode);
+}
+
+static void
+fbdevAdjustFrame(ScrnInfoPtr pScrn, int x, int y)
+{
+    fbdevHWAdjustFrame(pScrn, x, y);
+}
+
+static Bool
+fbdevEnterVT(ScrnInfoPtr pScrn)
+{
+    return fbdevHWEnterVT(pScrn);
+}
+
+static void
+fbdevLeaveVT(ScrnInfoPtr pScrn)
+{
+    fbdevHWLeaveVT(pScrn);
+}
+
+static ModeStatus
+fbdevValidMode(ScrnInfoPtr pScrn, DisplayModePtr mode, Bool verbose, int flags)
+{
+    return fbdevHWValidMode(pScrn, mode, verbose, flags);
+}
 
 #ifdef XSERVER_LIBPCIACCESS
 static Bool FBDevPciProbe(DriverPtr drv, int entity_num,
@@ -467,6 +501,40 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 	if (!fbdevHWInit(pScrn,NULL,xf86FindOptionValue(fPtr->pEnt->device->options,"fbdev")))
 		return FALSE;
 	default_depth = fbdevHWGetDepth(pScrn,&fbbpp);
+#if 0 /* TODO: Not sure if merging this too */
++
++	if (default_depth == 8) do {
++	    /* trust the command line */
++	    if (xf86FbBpp > 0 || xf86Depth > 0)
++		break;
++
++	    /* trust the config file's Screen stanza */
++	    if (pScrn->confScreen->defaultfbbpp > 0 ||
++		pScrn->confScreen->defaultdepth > 0)
++		break;
++
++	    /* trust our Device stanza in the config file */
++	    if (xf86FindOption(fPtr->pEnt->device->options, "DefaultDepth") ||
++		xf86FindOption(fPtr->pEnt->device->options, "DefaultFbBpp"))
++		break;
++
++	    /* otherwise, lol no */
++	    xf86DrvMsg(pScrn->scrnIndex, X_INFO,
++		       "Console is 8bpp, defaulting to 32bpp\n");
++	    default_depth = 24;
++	    fbbpp = 32;
++	} while (0);
++
++        fPtr->shadow24 = FALSE;
++#ifdef HAVE_SHADOW_3224
++        /* okay but 24bpp is awful */
++        if (fbbpp == 24) {
++            fPtr->shadow24 = TRUE;
++            fbbpp = 32;
++        }
++#endif
++
+#endif
 	if (!xf86SetDepthBpp(pScrn, default_depth, default_depth, fbbpp,
 			     Support24bppFb | Support32bppFb | SupportConvert32to24 | SupportConvert24to32))
 		return FALSE;
@@ -656,6 +724,25 @@ FBDevPreInit(ScrnInfoPtr pScrn, int flags)
 	return TRUE;
 }
 
+static void
+fbdevUpdate32to24(ScreenPtr pScreen, shadowBufPtr pBuf)
+{
+#ifdef HAVE_SHADOW_3224
+    shadowUpdate32to24(pScreen, pBuf);
+#endif
+}
+
+static void
+fbdevUpdateRotatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
+{
+    shadowUpdateRotatePacked(pScreen, pBuf);
+}
+
+static void
+fbdevUpdatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
+{
+    shadowUpdatePacked(pScreen, pBuf);
+}
 
 static Bool
 FBDevCreateScreenResources(ScreenPtr pScreen)
@@ -675,13 +762,11 @@ FBDevCreateScreenResources(ScreenPtr pScreen)
 
     pPixmap = pScreen->GetScreenPixmap(pScreen);
 
-#if 0    
     if (fPtr->shadow24)
         update = fbdevUpdate32to24;
     else if (fPtr->rotate)
         update = fbdevUpdateRotatePacked;
     else
-#endif
         update = fbdevUpdatePacked;
 
     if (!shadowAdd(pScreen, pPixmap, update, 
@@ -708,6 +793,23 @@ FBDevShadowInit(ScreenPtr pScreen)
     return TRUE;
 }
 
+static void
+fbdevLoadPalette(ScrnInfoPtr pScrn, int num, int *i, LOCO *col, VisualPtr pVis)
+{
+    fbdevHWLoadPalette(pScrn, num, i, col, pVis);
+}
+
+static void
+fbdevDPMSSet(ScrnInfoPtr pScrn, int mode, int flags)
+{
+    fbdevHWDPMSSet(pScrn, mode, flags);
+}
+
+static Bool
+fbdevSaveScreen(ScreenPtr pScreen, int mode)
+{
+    return fbdevHWSaveScreen(pScreen, mode);
+}
 
 static Bool
 FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
@@ -988,7 +1090,9 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	  xf86DrvMsg(pScrn->scrnIndex, X_INFO, "display rotated; disabling DGA\n");
 	  xf86DrvMsg(pScrn->scrnIndex, X_INFO, "using driver rotation; disabling "
 			                "XRandR\n");
+#if GET_ABI_MAJOR(ABI_VIDEODRV_VERSION) < 24
 	  xf86DisableRandR();
+#endif
 	  if (pScrn->bitsPerPixel == 24)
 	    xf86DrvMsg(pScrn->scrnIndex, X_WARNING, "rotation might be broken at 24 "
                                              "bits per pixel\n");
