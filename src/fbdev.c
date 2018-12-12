@@ -675,9 +675,13 @@ FBDevCreateScreenResources(ScreenPtr pScreen)
 
     pPixmap = pScreen->GetScreenPixmap(pScreen);
 
-    if (fPtr->rotate)
+#if 0    
+    if (fPtr->shadow24)
+        update = fbdevUpdate32to24;
+    else if (fPtr->rotate)
         update = fbdevUpdateRotatePacked;
     else
+#endif
         update = fbdevUpdatePacked;
 
     if (!shadowAdd(pScreen, pPixmap, update, 
