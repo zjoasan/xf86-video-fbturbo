@@ -664,6 +664,7 @@ FBDevCreateScreenResources(ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     FBDevPtr fPtr = FBDEVPTR(pScrn);
     Bool ret;
+    void (*update)(ScreenPtr, shadowBufPtr);
 
     pScreen->CreateScreenResources = fPtr->CreateScreenResources;
     ret = pScreen->CreateScreenResources(pScreen);
@@ -674,9 +675,15 @@ FBDevCreateScreenResources(ScreenPtr pScreen)
 
     pPixmap = pScreen->GetScreenPixmap(pScreen);
 
-    if (!shadowAdd(pScreen, pPixmap, fPtr->rotate ?
-		   shadowUpdateRotatePackedWeak() : shadowUpdatePackedWeak(),
-		   FBDevWindowLinear, fPtr->rotate, NULL)) {
+    if (fPtr->shadow24)
+        update = fbdevUpdate32to24;
+    else if (fPtr->rotate)
+        update = fbdevUpdateRotatePacked;
+    else
+        update = fbdevUpdatePacked;
+
+    if (!shadowAdd(pScreen, pPixmap, update, 
+    		FBDevWindowLinear, fPtr->rotate, NULL)) {
 	return FALSE;
     }
 
