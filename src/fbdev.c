@@ -177,7 +177,6 @@ typedef enum {
 	OPTION_USE_BS,
 	OPTION_FORCE_BS,
 	OPTION_XV_OVERLAY,
-	OPTION_DEBUG
 } FBDevOpts;
 
 static const OptionInfoRec FBDevOptions[] = {
