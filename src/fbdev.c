@@ -173,6 +173,7 @@ typedef enum {
 	OPTION_USE_BS,
 	OPTION_FORCE_BS,
 	OPTION_XV_OVERLAY,
+	OPTION_DRI_PATH,
 } FBDevOpts;
 
 static const OptionInfoRec FBDevOptions[] = {
@@ -189,6 +190,7 @@ static const OptionInfoRec FBDevOptions[] = {
 	{ OPTION_USE_BS,	"UseBackingStore",OPTV_BOOLEAN,	{0},	FALSE },
 	{ OPTION_FORCE_BS,	"ForceBackingStore",OPTV_BOOLEAN,{0},	FALSE },
 	{ OPTION_XV_OVERLAY,	"XVHWOverlay",	OPTV_BOOLEAN,	{0},	FALSE },
+	{ OPTION_DRI_PATH, "DRIDevicePath",OPTV_STRING, {0}, FALSE },
 	{ -1,			NULL,		OPTV_NONE,	{0},	FALSE }
 };
 
@@ -1077,6 +1079,7 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	    fPtr->SunxiMaliDRI2_private = SunxiMaliDRI2_Init(pScreen,
 		xf86ReturnOptValBool(fPtr->Options, OPTION_DRI2_OVERLAY, TRUE),
 		xf86ReturnOptValBool(fPtr->Options, OPTION_SWAPBUFFERS_WAIT, TRUE));
+		xf86GetOptValString(fPtr->Options, OPTION_DRI_PATH));
 
 	    if (fPtr->SunxiMaliDRI2_private) {
 		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
