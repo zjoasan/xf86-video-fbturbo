@@ -104,6 +104,12 @@ some improvements are possible in this area. But if you really care
 about the desktop performance, then you likely don't want to enable
 any compositing effects in your window manager anyway.
 .TP
+.BI "Option \*qDRIDevicePath\*q \*q" string \*q
+Specify path to DRI device. By default, fbturbo uses drmOpen
+to open correct device, but it may not work on sunxi devices when 
+using second screen (on /dev/fb1) and uses /dev/dri/card0 instead of
+/dev/dri/card1. Then you can specify the correct path.  Default: (null)
+.TP
 .BI "Option \*qSwapbuffersWait\*q \*q" boolean \*q
 This option controls the behavior of eglSwapBuffers calls by OpenGL ES
 applications. If enabled, the calls will try to avoid tearing by making
