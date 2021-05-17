@@ -165,7 +165,8 @@ typedef struct {
 
 SunxiMaliDRI2 *SunxiMaliDRI2_Init(ScreenPtr pScreen,
                                   Bool      bUseOverlay,
-                                  Bool      bSwapbuffersWait);
+                                  Bool      bSwapbuffersWait,
+                                  char      *driPath);
 void SunxiMaliDRI2_Close(ScreenPtr pScreen);
 
 #endif
