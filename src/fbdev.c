@@ -1037,7 +1037,7 @@ FBDevScreenInit(SCREEN_INIT_ARGS_DECL)
 	fPtr->CloseScreen = pScreen->CloseScreen;
 	pScreen->CloseScreen = FBDevCloseScreen;
 
-#if XV
+#ifdef XV
 	fPtr->SunxiVideo_private = NULL;
 	if (xf86ReturnOptValBool(fPtr->Options, OPTION_XV_OVERLAY, TRUE) &&
 	fPtr->sunxi_disp_private) {
@@ -1127,7 +1127,7 @@ FBDevCloseScreen(CLOSE_SCREEN_ARGS_DECL)
 	    fPtr->SunxiDispHardwareCursor_private = NULL;
 	}
 
-#if XV
+#ifdef XV
 	if (fPtr->SunxiVideo_private) {
 	    SunxiVideo_Close(pScreen);
 	    free(fPtr->SunxiVideo_private);
